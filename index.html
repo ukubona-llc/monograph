@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Piecewise Differentiable Ontologies · Ukubona LLC</title>
+<link rel="icon" href="https://abikesa.github.io/favicon/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script>
+  // Prevent flash
+  (function(){
+    const t = localStorage.getItem('ukubona-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+<style>
+  :root[data-theme="dark"] {
+    --bg: #0d0d0f;
+    --bg2: #13131a;
+    --bg3: #1a1a24;
+    --text: #e8e4db;
+    --text-dim: #8a8580;
+    --text-dimmer: #4a4845;
+    --amber: #c8922a;
+    --amber-glow: #e0a83a;
+    --violet: #7c5cbf;
+    --violet-light: #9b7de0;
+    --border: rgba(200,146,42,0.15);
+    --border-dim: rgba(200,146,42,0.07);
+    --logo: url('https://abikesa.github.io/logos/ukubona-dark-logo.svg');
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f2eb;
+    --bg2: #edeae2;
+    --bg3: #e4e0d6;
+    --text: #1a1814;
+    --text-dim: #6b6560;
+    --text-dimmer: #bab5ae;
+    --amber: #9a6e1a;
+    --amber-glow: #b8820a;
+    --violet: #5a3da0;
+    --violet-light: #7654c8;
+    --border: rgba(154,110,26,0.2);
+    --border-dim: rgba(154,110,26,0.08);
+    --logo: url('https://abikesa.github.io/logos/ukubona-light-logo.svg');
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 17px;
+    line-height: 1.75;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* NAV */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    height: 56px;
+    backdrop-filter: blur(12px);
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+    color: var(--text);
+  }
+
+  .nav-logo-img {
+    width: 28px;
+    height: 28px;
+    background-image: var(--logo);
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    animation: spin 20s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+  .nav-wordmark {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1rem;
+    letter-spacing: 0.02em;
+    color: var(--amber);
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    list-style: none;
+  }
+
+  .nav-links a {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover,
+  .nav-links a.active { color: var(--amber); }
+
+  .theme-toggle {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    transition: all 0.2s;
+  }
+  .theme-toggle:hover { color: var(--amber); border-color: var(--amber); }
+
+  /* HERO */
+  .hero {
+    min-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 6rem 2rem 4rem;
+    max-width: 900px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  .hero-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--violet-light);
+    margin-bottom: 1.5rem;
+  }
+
+  .hero-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2.4rem, 6vw, 4.2rem);
+    line-height: 1.1;
+    color: var(--text);
+    margin-bottom: 1rem;
+  }
+
+  .hero-title em {
+    font-style: italic;
+    color: var(--amber);
+  }
+
+  .hero-subtitle {
+    font-family: 'DM Serif Display', serif;
+    font-style: italic;
+    font-size: clamp(1rem, 2.5vw, 1.35rem);
+    color: var(--text-dim);
+    margin-bottom: 3rem;
+    max-width: 640px;
+  }
+
+  .hero-rule {
+    width: 80px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--amber), transparent);
+    margin-bottom: 2rem;
+  }
+
+  .hero-abstract {
+    max-width: 640px;
+    color: var(--text-dim);
+    font-size: 1rem;
+    line-height: 1.8;
+  }
+
+  /* REGIME INDICATOR — signature element */
+  .regime-bar {
+    position: relative;
+    margin: 4rem 0 3rem;
+    padding: 2rem;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .regime-bar::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--violet), var(--amber), var(--violet-light), transparent);
+  }
+
+  .regime-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-dimmer);
+    margin-bottom: 1rem;
+  }
+
+  .regime-track {
+    display: flex;
+    gap: 2px;
+    align-items: flex-end;
+    height: 40px;
+    margin-bottom: 0.75rem;
+  }
+
+  .regime-segment {
+    flex: 1;
+    border-radius: 2px 2px 0 0;
+    position: relative;
+    cursor: default;
+    transition: opacity 0.2s;
+  }
+
+  .regime-segment:hover { opacity: 0.8; }
+
+  .regime-names {
+    display: flex;
+    gap: 2px;
+  }
+
+  .regime-name {
+    flex: 1;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    text-align: center;
+    color: var(--text-dimmer);
+    padding-top: 0.35rem;
+  }
+
+  .regime-caption {
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    font-style: italic;
+  }
+
+  .snap-marker {
+    position: absolute;
+    right: -1px;
+    top: -8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--amber);
+    letter-spacing: 0.05em;
+  }
+
+  /* SECTIONS */
+  main { max-width: 780px; margin: 0 auto; padding: 0 2rem 6rem; }
+
+  section { margin-bottom: 5rem; scroll-margin-top: 72px; }
+
+  .section-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--violet-light);
+    margin-bottom: 0.75rem;
+  }
+
+  h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(1.5rem, 3.5vw, 2rem);
+    line-height: 1.25;
+    color: var(--text);
+    margin-bottom: 1.5rem;
+  }
+
+  h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.15rem;
+    color: var(--amber);
+    margin: 2rem 0 0.75rem;
+  }
+
+  p { margin-bottom: 1.25rem; color: var(--text-dim); }
+
+  strong { color: var(--text); font-weight: 600; }
+
+  em { font-style: italic; color: var(--amber-glow); }
+
+  /* PROVERB BLOCK */
+  .proverb-trio {
+    display: grid;
+    gap: 1px;
+    margin: 2.5rem 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .proverb-item {
+    background: var(--bg2);
+    padding: 1.25rem 1.5rem;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem 1.5rem;
+    align-items: start;
+  }
+
+  .proverb-lang {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.64rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--violet-light);
+    padding-top: 0.15rem;
+    white-space: nowrap;
+  }
+
+  .proverb-text {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.05rem;
+    color: var(--text);
+    line-height: 1.45;
+  }
+
+  .proverb-gloss {
+    grid-column: 2;
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    margin-top: 0.2rem;
+  }
+
+  /* TMVES TABLE */
+  .tmves-stack {
+    margin: 2.5rem 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .tmves-row {
+    display: grid;
+    grid-template-columns: 2rem 1fr 2fr 2fr;
+    gap: 0;
+    border-bottom: 1px solid var(--border-dim);
+    transition: background 0.15s;
+  }
+
+  .tmves-row:last-child { border-bottom: none; }
+  .tmves-row:hover { background: var(--bg3); }
+
+  .tmves-row.header {
+    background: var(--bg3);
+    pointer-events: none;
+  }
+
+  .tmves-cell {
+    padding: 0.85rem 1rem;
+    font-size: 0.82rem;
+  }
+
+  .tmves-row.header .tmves-cell {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.64rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dimmer);
+  }
+
+  .tmves-glyph {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.1rem;
+    color: var(--amber);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.85rem 0.5rem;
+  }
+
+  .tmves-name {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .tmves-question {
+    color: var(--text-dim);
+    font-style: italic;
+  }
+
+  .tmves-deriv {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--violet-light);
+  }
+
+  .tmves-row.snap-row { border-top: 2px solid var(--amber); }
+
+  .tmves-row.breach-row {
+    background: rgba(124,92,191,0.08);
+  }
+
+  .tmves-row.breach-row .tmves-glyph { color: var(--violet-light); }
+
+  /* KINEMATIC LADDER */
+  .kinematic-ladder {
+    margin: 2.5rem 0;
+    position: relative;
+    padding-left: 2.5rem;
+  }
+
+  .kinematic-ladder::before {
+    content: '';
+    position: absolute;
+    left: 0.85rem;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    width: 1px;
+    background: linear-gradient(to bottom, var(--violet), var(--amber) 80%, transparent);
+  }
+
+  .kl-item {
+    position: relative;
+    margin-bottom: 1.25rem;
+    padding: 0.9rem 1.2rem;
+    background: var(--bg2);
+    border: 1px solid var(--border-dim);
+    border-radius: 4px;
+  }
+
+  .kl-item::before {
+    content: '';
+    position: absolute;
+    left: -1.65rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--violet);
+    border: 1px solid var(--bg);
+  }
+
+  .kl-item.is-snap::before { background: var(--amber); width: 10px; height: 10px; }
+
+  .kl-item.is-beyond {
+    border-color: rgba(124,92,191,0.25);
+    background: rgba(124,92,191,0.05);
+  }
+
+  .kl-item.is-beyond::before { background: var(--violet-light); }
+
+  .kl-order {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-dimmer);
+    margin-bottom: 0.2rem;
+  }
+
+  .kl-name {
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.2rem;
+  }
+
+  .kl-gloss {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    font-style: italic;
+  }
+
+  .ontology-breach {
+    margin: 1.5rem 0 1.25rem 0;
+    padding: 0.6rem 1rem;
+    border-left: 3px solid var(--amber);
+    background: rgba(200,146,42,0.06);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.76rem;
+    color: var(--amber);
+    letter-spacing: 0.04em;
+  }
+
+  /* GRAPH PANEL */
+  .graph-panel {
+    margin: 2.5rem 0;
+    padding: 1.75rem;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+
+  .graph-panel-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-dimmer);
+    margin-bottom: 1.25rem;
+  }
+
+  .edge-list {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .edge {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.84rem;
+  }
+
+  .edge-from { font-weight: 600; color: var(--text); min-width: 80px; }
+
+  .edge-arrow { color: var(--text-dimmer); font-family: 'DM Mono', monospace; }
+
+  .edge-to { color: var(--text-dim); min-width: 120px; }
+
+  .edge-weight {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    margin-left: auto;
+    padding: 0.1rem 0.5rem;
+    border-radius: 3px;
+    background: var(--bg3);
+  }
+
+  .edge-weight.high { color: var(--amber); }
+  .edge-weight.mid { color: var(--text-dim); }
+  .edge-weight.low { color: var(--text-dimmer); }
+  .edge-weight.winning { color: var(--violet-light); font-weight: 600; }
+  .edge-weight.dead { color: var(--text-dimmer); text-decoration: line-through; }
+
+  .graph-caption {
+    margin-top: 1.25rem;
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    font-style: italic;
+  }
+
+  /* ZINGER */
+  .zinger {
+    margin: 3rem 0;
+    padding: 1.75rem 2rem;
+    border-left: 3px solid var(--amber);
+    background: var(--bg2);
+  }
+
+  .zinger p {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(1.05rem, 2.5vw, 1.3rem);
+    color: var(--text);
+    line-height: 1.5;
+    margin-bottom: 0;
+  }
+
+  .zinger-attr {
+    margin-top: 0.75rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dimmer);
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 2.5rem 2rem;
+    max-width: 780px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .footer-mark {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-dimmer);
+    letter-spacing: 0.08em;
+  }
+
+  .footer-mark span { color: var(--amber); }
+
+  /* RESPONSIVE */
+  @media (max-width: 640px) {
+    nav { padding: 0 1rem; }
+    .nav-links { gap: 1rem; }
+    .nav-links li:not(:last-child) { display: none; }
+    .hero { padding: 4rem 1rem 3rem; }
+    main { padding: 0 1rem 4rem; }
+    .tmves-row { grid-template-columns: 1.5rem 1fr 1.5fr; }
+    .tmves-row .tmves-question { display: none; }
+    footer { padding: 2rem 1rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav-logo-img { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<nav id="top-nav">
+  <a class="nav-logo" href="#">
+    <div class="nav-logo-img" role="img" aria-label="Ukubona rotating logo"></div>
+    <span class="nav-wordmark">Ukubona</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#proof">Proof</a></li>
+    <li><a href="#graph">Graph</a></li>
+    <li><a href="#tmves">TMVES</a></li>
+    <li><a href="#invariant">Invariant</a></li>
+    <li><a href="#ontology">Ontology</a></li>
+  </ul>
+  <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">◑</button>
+</nav>
+
+<div class="hero" id="hero">
+  <div class="hero-eyebrow">Ukubona LLC · Monograph · Kampala 2026</div>
+  <h1 class="hero-title">Piecewise<br><em>Differentiable</em><br>Ontologies</h1>
+  <p class="hero-subtitle">or: What the Basoga Knew Before the Jacobian</p>
+  <div class="hero-rule"></div>
+  <p class="hero-abstract">
+    Five derivatives — position, velocity, acceleration, jerk, snap — describe motion within a world whose topology is intact. Snap is not the fifth derivative among many; it is the last one that belongs to the same manifold. Beyond it, you do not differentiate further. You reconstruct the geometry. This essay traces that discovery through Basoga kinship naming, Paul's father, a donated kidney, and the TMVES architecture — arriving at a single invariant: the scalar measures not a KPI, but the remaining distance before the ontology itself fails.
+  </p>
+
+  <!-- REGIME BAR — signature element -->
+  <div class="regime-bar" aria-label="Kinematic regime visualization">
+    <div class="regime-label">Kinematic regime · distance to ontological breach</div>
+    <div class="regime-track" id="regime-track">
+      <div class="regime-segment" style="height:22%;background:var(--violet);opacity:0.5;"></div>
+      <div class="regime-segment" style="height:40%;background:var(--violet);opacity:0.65;"></div>
+      <div class="regime-segment" style="height:58%;background:var(--violet-light);opacity:0.75;"></div>
+      <div class="regime-segment" style="height:76%;background:var(--amber);opacity:0.85;"></div>
+      <div class="regime-segment" style="height:100%;background:var(--amber);position:relative;">
+        <span class="snap-marker">SNAP ∥ breach</span>
+      </div>
+      <div class="regime-segment" style="height:85%;background:rgba(124,92,191,0.3);border:1px dashed var(--violet);"></div>
+      <div class="regime-segment" style="height:65%;background:rgba(124,92,191,0.2);border:1px dashed var(--violet);"></div>
+    </div>
+    <div class="regime-names">
+      <div class="regime-name">position</div>
+      <div class="regime-name">velocity</div>
+      <div class="regime-name">accel.</div>
+      <div class="regime-name">jerk</div>
+      <div class="regime-name">snap</div>
+      <div class="regime-name" style="color:var(--violet-light);">∅ manifold</div>
+      <div class="regime-name" style="color:var(--violet-light);">reconstruct</div>
+    </div>
+    <p class="regime-caption">Within the pentad, the topology is intact. At snap, it is still intact — and it is the last moment it will be. The dashed bars are not derivatives; they are a different geometry.</p>
+  </div>
+</div>
+
+<main>
+
+  <!-- I. PROOF BY LIVED EXPERIENCE -->
+  <section id="proof">
+    <div class="section-eyebrow">I · Proof by Lived Experience</div>
+    <h2>The Name Is Not a Label.<br>It Is a Coordinate.</h2>
+
+    <p>Abimereki Dhatemwa was named after his paternal grandfather. His paternal grandmother Ikesa called him <em>her husband</em>. His mother called him <em>her father-in-law</em>. He carried this confusion for roughly four decades.</p>
+
+    <p>At forty-six, having spent years inside transformer architectures and latent-space geometry, the confusion resolved — not by disappearing but by being revealed as the intended effect. The Basoga were not making errors. They were running an encoding system of considerable sophistication.</p>
+
+    <div class="zinger">
+      <p>Names are not pointers to people. They are coordinates in a social manifold.</p>
+      <div class="zinger-attr">— Emergent formulation, this roundtable</div>
+    </div>
+
+    <p>In Western naming conventions, a name is a unique identifier: <strong>one label → one individual</strong>. In the Basoga system, a name activates a relational cluster. You are dropped into a dense neighborhood of ancestral embeddings, and every speaker traverses that neighborhood by a different edge.</p>
+
+    <p>Your grandmother follows one edge. Your mother another. Your father another. No one is wrong. They are taking different paths through the same vertex.</p>
+
+    <div class="proverb-trio">
+      <div class="proverb-item">
+        <span class="proverb-lang">isiZulu / Bantu</span>
+        <div>
+          <div class="proverb-text">Umuntu ngumuntu ngabantu.</div>
+          <div class="proverb-gloss">A person is a person through other persons. The individual is not the primitive object — relationships are. Remove all edges and personhood itself becomes impoverished.</div>
+        </div>
+      </div>
+      <div class="proverb-item">
+        <span class="proverb-lang">Lusoga</span>
+        <div>
+          <div class="proverb-text">Omusio kisolo.</div>
+          <div class="proverb-gloss">A solitary person is like a beast. Not a moral claim — an ontological one. A disconnected node loses much of what makes it human.</div>
+        </div>
+      </div>
+      <div class="proverb-item">
+        <span class="proverb-lang">Lusoga</span>
+        <div>
+          <div class="proverb-text">Ababiri bantu.</div>
+          <div class="proverb-gloss">Two are people. The minimum stable unit of personhood is already relational. One is merely biological; two instantiate society.</div>
+        </div>
+      </div>
+    </div>
+
+    <p>The proverbs are not moral sayings. They are ontological theorems about the structure of the human being. Mapped to graph theory: one node with zero edges is an organism; two nodes with one edge is society; many nodes with many edges is culture; a dense graph across generations is civilization.</p>
+
+    <div class="zinger">
+      <p>The Basoga do not teach that a human being is an individual who has relationships. They teach that a human being is a relationship that is, for a time, embodied by an individual.</p>
+    </div>
+
+    <p>This is classificatory kinship — documented across many African societies — but the Basoga version is philosophically unusually clean. By naming you after your grandfather, the family didn't merely honor him. They installed a relational override. They trained the community's contextual weights so that no one ever loses their coordinates in the ancestral network.</p>
+
+    <p>The childhood confusion was high loss at initialization. SGD ran for four decades. The grokking moment arrived at forty-six.</p>
+  </section>
+
+  <!-- II. PAUL'S FATHER -->
+  <section id="graph">
+    <div class="section-eyebrow">II · Paul's Father</div>
+    <h2>Edges Are Weights.<br>Degradation Is Values Reducing.</h2>
+
+    <p>Paul's father, seventy-five, recognized Paul correctly — perceptual identity intact. He named Paul's two sisters correctly — semantic memory intact. But when Paul asked <em>who am I to you?</em>, his father said: <strong>"You are a very dear friend."</strong></p>
+
+    <p>Paul's father has dementia.</p>
+
+    <p>This is not fabrication. It is the best surviving explanation given a degraded network. The vertices were all present. One critical edge had weakened below the retrieval threshold.</p>
+
+    <div class="graph-panel">
+      <div class="graph-panel-title">Relational graph · before and after weight decay</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;flex-wrap:wrap;">
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--text-dimmer);margin-bottom:0.75rem;text-transform:uppercase;letter-spacing:0.1em;">Healthy weights</div>
+          <div class="edge-list">
+            <div class="edge">
+              <span class="edge-from">Paul</span>
+              <span class="edge-arrow">→</span>
+              <span class="edge-to">Son</span>
+              <span class="edge-weight high">0.99</span>
+            </div>
+            <div class="edge">
+              <span class="edge-from">Paul</span>
+              <span class="edge-arrow">→</span>
+              <span class="edge-to">Beloved</span>
+              <span class="edge-weight high">0.92</span>
+            </div>
+            <div class="edge">
+              <span class="edge-from">Paul</span>
+              <span class="edge-arrow">→</span>
+              <span class="edge-to">Friend</span>
+              <span class="edge-weight mid">0.65</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--text-dimmer);margin-bottom:0.75rem;text-transform:uppercase;letter-spacing:0.1em;">After degradation</div>
+          <div class="edge-list">
+            <div class="edge">
+              <span class="edge-from">Paul</span>
+              <span class="edge-arrow">→</span>
+              <span class="edge-to">Son</span>
+              <span class="edge-weight dead">0.18</span>
+            </div>
+            <div class="edge">
+              <span class="edge-from">Paul</span>
+              <span class="edge-arrow">→</span>
+              <span class="edge-to">Beloved</span>
+              <span class="edge-weight mid">0.81</span>
+            </div>
+            <div class="edge">
+              <span class="edge-from">Paul</span>
+              <span class="edge-arrow">→</span>
+              <span class="edge-to">Friend</span>
+              <span class="edge-weight winning">0.74 ← wins</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="graph-caption">The affection survived even as the topology was damaged. The graph became sparse, but not empty. The embedding remained nearby while the label decoder failed.</p>
+    </div>
+
+    <p>This is the inversion of the Basoga system. Healthy culture adds <strong>redundant paths</strong>: grandson, husband-surrogate, father-in-law, clan member, ancestor's continuation. If one edge weakens, others still route through the network. Engineers call this fault tolerance. Dementia progressively prunes those paths.</p>
+
+    <p>Whether deliberate kinship redundancy has any measurable protective effect against cognitive decline is an empirical question. Conceptually, it is a beautiful architectural claim: the richer the relational graph at initialization, the longer graceful degradation can be sustained before a label decoder crosses a decision boundary.</p>
+
+    <div class="zinger">
+      <p>One culture says: you are simultaneously my grandson, my husband, and my daughter-in-law's father-in-law. Dementia says: I know you. I love you. But I can no longer find the edge that tells me exactly how we are connected.</p>
+    </div>
+
+    <p>Learning is edge-weight optimization. Memory is the maintenance of those weights. Dementia is progressive degradation of the weight matrix, causing the system to retrieve increasingly approximate rather than exact relational identities. The decoder doesn't fail because the event happened. It fails because the trajectory intersected a decision boundary — and the trajectory had been changing for years before anyone noticed.</p>
+  </section>
+
+  <!-- III. KIDNEY -->
+  <section>
+    <div class="section-eyebrow">III · The Doctoral Thesis Revisited</div>
+    <h2>Robustness Margin,<br>Not Risk Probability.</h2>
+
+    <p>The clinical question in older living kidney donor research is: how much redundancy does the human organism possess, and how does that redundancy change with age?</p>
+
+    <p>A healthy young adult has enormous physiological reserve. An older adult has less — not necessarily because they are unhealthy, but because robustness has gradually been consumed. The same nephrectomy represents a different perturbation to two systems with different amounts of spare capacity.</p>
+
+    <p>Conventional risk calculators estimate the probability of adverse events: <em>your chance of CKD is X%</em>. What the thesis was really estimating — now seen clearly — is something richer: the robustness landscape of the individual.</p>
+
+    <div class="zinger">
+      <p>Not merely: your chance of CKD is X%. But: given your age, comorbidities, and baseline eGFR, this is how much reserve you are likely to retain after donation. That is a statement about resilience, not just risk.</p>
+    </div>
+
+    <p>Two patients can have identical postoperative GFRs today while occupying completely different dynamical regimes. One returns to equilibrium. The other has entered an accelerating decline. The Jacobian compressor would distinguish them long before a conventional risk calculator — because it is tracking the trajectory, not merely the current state.</p>
+
+    <p>The invariant surfaces again: kidney function, cognitive relational reserve, Basoga kinship redundancy, LLM representational capacity. All are asking the same question: <strong>how much redundancy can this system lose before its behavior qualitatively changes?</strong></p>
+  </section>
+
+  <!-- IV. TMVES -->
+  <section id="tmves">
+    <div class="section-eyebrow">IV · Architecture</div>
+    <h2>TMVES Is Not a Hierarchy<br>of Data Structures.<br>It Is a Hierarchy of Questions.</h2>
+
+    <div class="tmves-stack">
+      <div class="tmves-row header">
+        <div class="tmves-cell"></div>
+        <div class="tmves-cell">Stage</div>
+        <div class="tmves-cell tmves-question">Question</div>
+        <div class="tmves-cell">Derivative / Object</div>
+      </div>
+      <div class="tmves-row">
+        <div class="tmves-glyph">T</div>
+        <div class="tmves-cell"><span class="tmves-name">Tensor</span></div>
+        <div class="tmves-cell tmves-question">What happened?</div>
+        <div class="tmves-cell tmves-deriv">Event stream · all observations</div>
+      </div>
+      <div class="tmves-row">
+        <div class="tmves-glyph">M</div>
+        <div class="tmves-cell"><span class="tmves-name">Matrix</span></div>
+        <div class="tmves-cell tmves-question">What influences what?</div>
+        <div class="tmves-cell tmves-deriv">Jacobian · local coupling</div>
+      </div>
+      <div class="tmves-row">
+        <div class="tmves-glyph">V</div>
+        <div class="tmves-cell"><span class="tmves-name">Vector</span></div>
+        <div class="tmves-cell tmves-question">Where is the system tending?</div>
+        <div class="tmves-cell tmves-deriv">Dominant flow direction</div>
+      </div>
+      <div class="tmves-row">
+        <div class="tmves-glyph">E</div>
+        <div class="tmves-cell"><span class="tmves-name">Eigenmode</span></div>
+        <div class="tmves-cell tmves-question">Which dynamics dominate?</div>
+        <div class="tmves-cell tmves-deriv">Active attractor · regime</div>
+      </div>
+      <div class="tmves-row snap-row">
+        <div class="tmves-glyph">S</div>
+        <div class="tmves-cell"><span class="tmves-name">Scalar</span></div>
+        <div class="tmves-cell tmves-question">How close are we to no longer being describable by the current dynamics?</div>
+        <div class="tmves-cell tmves-deriv">R(t) = distance to ontological breach</div>
+      </div>
+    </div>
+
+    <p>The scalar is not a KPI. It is not a summary. It is a regime-locator — the answer to the most important question a dynamical system can ask about itself. The Jacobian tells you how the system moves. The Hessian tells you how movement changes. Higher tensors tell you how the rules of movement change. The scalar tells you whether you are still in the same world.</p>
+
+    <div class="zinger">
+      <p>Most AI today models state. Digital twins should model motion — not where is the system, but where is it heading, and how rapidly is the geometry itself changing.</p>
+    </div>
+
+    <p>This also gives a different interpretation of informed consent. Most clinical risk calculators ask: what is the probability of an adverse event? The scalar asks: how close is this organism to a regime from which recovery is no longer the dominant trajectory? That is a profoundly different clinical question — and the more useful one.</p>
+  </section>
+
+  <!-- V. INVARIANT -->
+  <section id="invariant">
+    <div class="section-eyebrow">V · The Invariant</div>
+    <h2>Position Through Snap.<br>Topology Intact.</h2>
+
+    <p>In classical mechanics, the kinematic hierarchy names derivatives of position with increasing order. The first five have received informal names: position, velocity, acceleration, jerk, snap. Beyond snap: crackle, pop. But this essay argues that the cutoff at snap is not arbitrary — it is where the pentad closes, and it closes because it must.</p>
+
+    <div class="kinematic-ladder">
+      <div class="kl-item">
+        <div class="kl-order">0th derivative · Position</div>
+        <div class="kl-name">Where am I?</div>
+        <div class="kl-gloss">Current state. The system exists at a point in configuration space. Topology is intact.</div>
+      </div>
+      <div class="kl-item">
+        <div class="kl-order">1st derivative · Velocity</div>
+        <div class="kl-name">How am I changing?</div>
+        <div class="kl-gloss">The Jacobian of state. Direction and speed of evolution. Topology intact.</div>
+      </div>
+      <div class="kl-item">
+        <div class="kl-order">2nd derivative · Acceleration</div>
+        <div class="kl-name">How is change changing?</div>
+        <div class="kl-gloss">Curvature of trajectory. The Hessian. Topology intact.</div>
+      </div>
+      <div class="kl-item">
+        <div class="kl-order">3rd derivative · Jerk</div>
+        <div class="kl-name">How is acceleration changing?</div>
+        <div class="kl-gloss">Third-order tensor. Changing curvature. Topology intact.</div>
+      </div>
+      <div class="kl-item is-snap">
+        <div class="kl-order">4th derivative · Snap</div>
+        <div class="kl-name">How is jerk changing?</div>
+        <div class="kl-gloss">The last derivative that belongs to the current ontology. Topology intact — and this is the last moment it will be.</div>
+      </div>
+
+      <div class="ontology-breach">∥ ONTOLOGICAL BREACH — invariant fails here ∥</div>
+
+      <div class="kl-item is-beyond">
+        <div class="kl-order">Beyond snap · Crackle?</div>
+        <div class="kl-name">No. Manifold reconstruction.</div>
+        <div class="kl-gloss">You do not compute another derivative. The coordinate system on which differentiation was defined no longer exists. A new event stream begins. A new Jacobian is learned.</div>
+      </div>
+      <div class="kl-item is-beyond">
+        <div class="kl-order">Beyond snap · Pop?</div>
+        <div class="kl-name">No. New geometry.</div>
+        <div class="kl-gloss">The Jacobian was computed with respect to coordinates that no longer exist. The eigenmodes are no longer the dominant modes. The compression has become invalid because the ontology itself has changed.</div>
+      </div>
+    </div>
+
+    <p>This is why the pentad is not just five derivatives chosen for mnemonic convenience. It is the maximal hierarchy over which a fixed ontology remains valid. The transition at the boundary is not instability. It is not catastrophe in the colloquial sense. It is a different and much stronger statement:</p>
+
+    <div class="zinger">
+      <p>The mathematical language that described the system has ceased to be the correct language. You are not further along the same manifold. You are on a different manifold.</p>
+    </div>
+
+    <p>In catastrophe theory, almost nothing looks dramatic in the state variables as a system approaches a fold catastrophe. What changes is the geometry. The basin of attraction shallows. Recovery slows. Perturbations persist longer. Variance increases. Correlations strengthen. The dominant eigenvalue of the Jacobian drifts toward instability. The Hessian flattens. Higher-order terms stop being negligible. Then — snap. Not because something happened at snap, but because the geometry had been changing for months. The event was not the disease. The event was crossing the manifold.</p>
+  </section>
+
+  <!-- V. ONTOLOGY -->
+  <section id="ontology">
+    <div class="section-eyebrow">Colophon</div>
+    <h2>Piecewise Differentiable<br>Ontologies: The Definition.</h2>
+
+    <p>An intelligent system — biological, cultural, computational, political — inhabits a local geometry within which differentiation is meaningful. That geometry has a boundary. Within the boundary, all five kinematic derivatives are well-defined. At snap, the final derivative is computed within an intact topology. Beyond snap, topology does not survive perturbation.</p>
+
+    <p>The invariant — the condition under which differentiation remains meaningful — fails at the boundary. What follows is not a sixth derivative. It is a new segment: a new event stream, a new Jacobian, a new manifold to learn.</p>
+
+    <p>The scalar in TMVES is therefore not a summary of where the system is. It is the measure of how much perturbation the current ontology can absorb before reconstruction becomes the only available response.</p>
+
+    <p>Call this the <strong>Robustness Margin</strong>:</p>
+
+    <div style="text-align:center;padding:2rem;font-family:'DM Mono',monospace;font-size:1rem;color:var(--amber);letter-spacing:0.05em;background:var(--bg2);border:1px solid var(--border);border-radius:6px;margin:2rem 0;">
+      R(t) = distance to qualitative failure
+    </div>
+
+    <p>Everything else — trajectory, slope, acceleration, jerk, shocks — is estimating the derivatives of R(t). The event stream provides the history. The Jacobian compresses local behavior. The higher-order derivatives tell you whether the system is merely changing, or approaching a phase transition. The scalar tells you which regime you are in, and how much of it remains.</p>
+
+    <p>The conversation that produced this essay began with a Ugandan child being called his grandfather's name by his grandmother. It passed through an aging father who recognized his son but could no longer name the edge. It moved through a donated kidney, a clinical trial, a transformer architecture, a five-stage compression hierarchy, and a question about the sixth derivative. At every turn, the same structure appeared: a topology, a hierarchy of sensitivities within that topology, and a boundary beyond which the topology itself changes.</p>
+
+    <div class="zinger">
+      <p>The Basoga naming tradition externalized relational identity long before writing externalized memory, photography externalized appearance, cinema externalized narrative, or LLMs externalized semantic neighborhoods. It is, in effect, a living knowledge graph executed through speech rather than software — piecewise differentiable across generations, with kinship conventions serving as the reconstruction protocol at each ontological breach.</p>
+    </div>
+
+    <p>Okubala si Kulaba. Counting is not seeing. You can enumerate every derivative and still miss the boundary. Seeing is knowing when the manifold itself is about to change — and having the architectural vocabulary to say so.</p>
+  </section>
+
+</main>
+
+<footer>
+  <div class="footer-mark">T → M → V → E → S ↺ ∇L · <span>Kampala</span></div>
+  <div class="footer-mark">Ukubona LLC · 2026 · Piecewise Differentiable Ontologies</div>
+</footer>
+
+<script>
+  function toggleTheme() {
+    const root = document.documentElement;
+    const current = root.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    localStorage.setItem('ukubona-theme', next);
+  }
+
+  // IntersectionObserver for nav active states
+  const sections = document.querySelectorAll('section[id], div[id="hero"]');
+  const navLinks = document.querySelectorAll('.nav-links a');
+
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(a => {
+          a.classList.toggle('active', a.getAttribute('href') === '#' + entry.target.id);
+        });
+      }
+    });
+  }, { rootMargin: '-40% 0px -55% 0px' });
+
+  sections.forEach(s => obs.observe(s));
+</script>
+</body>
+</html>
