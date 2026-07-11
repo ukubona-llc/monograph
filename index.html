@@ -633,6 +633,7 @@
     <li><a href="#tmves">TMVES</a></li>
     <li><a href="#invariant">Invariant</a></li>
     <li><a href="#ontology">Ontology</a></li>
+    <li><a href="#egfr">eGFR</a></li>
   </ul>
   <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">◑</button>
 </nav>
@@ -961,6 +962,40 @@
     <p>Okubala si Kulaba. Counting is not seeing. You can enumerate every derivative and still miss the boundary. Seeing is knowing when the manifold itself is about to change — and having the architectural vocabulary to say so.</p>
   </section>
 
+  <!-- EGFR SECTION -->
+  <section id="egfr" style="scroll-margin-top:72px;margin-bottom:5rem;">
+    <div class="section-eyebrow">Appendix · Data · Johns Hopkins 1974–2022</div>
+    <h2>eGFR Trajectories in<br>100 Living Kidney Donors</h2>
+
+    <p>Simulated event-stream data. Each participant has a variable number of eGFR observations drawn from primary care records — from zero records (PCP never ordered creatinine) to dense longitudinal series. The simulation encodes known real-world regimes: acute post-donation drop, long-term gradual decline, hyperfiltration-mediated apparent recovery, catastrophic collapse, and individuals whose eGFR climbs back toward baseline. Noise is heteroskedastic — higher at longer follow-up as care fragmentation compounds. This is the messiness of 48 years of Hopkins transplant records before any cleaning.</p>
+
+    <div id="egfr-controls" style="display:flex;flex-wrap:wrap;gap:0.75rem;margin:1.5rem 0 0.5rem;align-items:center;">
+      <label style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--text-dim);display:flex;align-items:center;gap:0.4rem;">
+        <input type="checkbox" id="show-individuals" checked style="accent-color:var(--amber);"> Individual traces
+      </label>
+      <label style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--text-dim);display:flex;align-items:center;gap:0.4rem;">
+        <input type="checkbox" id="show-median" checked style="accent-color:var(--amber);"> Median ± IQR
+      </label>
+      <label style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--text-dim);display:flex;align-items:center;gap:0.4rem;">
+        <input type="checkbox" id="show-collapse" checked style="accent-color:var(--violet-light);"> Collapse events
+      </label>
+      <label style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--text-dim);display:flex;align-items:center;gap:0.4rem;">
+        <input type="checkbox" id="show-recovery" checked style="accent-color:#4a9;"> Recovery traces
+      </label>
+      <button onclick="resimulate()" style="margin-left:auto;background:none;border:1px solid var(--border);color:var(--amber);font-family:'DM Mono',monospace;font-size:0.68rem;padding:0.3rem 0.8rem;border-radius:3px;cursor:pointer;letter-spacing:0.08em;">↺ RESIMULATE</button>
+    </div>
+
+    <div style="position:relative;width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:6px;overflow:hidden;">
+      <div id="egfr-legend" style="display:flex;gap:1.25rem;flex-wrap:wrap;padding:0.75rem 1rem 0;font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--text-dimmer);"></div>
+      <svg id="egfr-svg" viewBox="0 0 900 480" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;"></svg>
+      <div id="egfr-tooltip" style="position:absolute;pointer-events:none;display:none;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:0.5rem 0.75rem;font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--text);white-space:nowrap;z-index:10;"></div>
+    </div>
+
+    <div id="egfr-summary" style="margin-top:1rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0.5rem;"></div>
+
+    <p style="margin-top:1.5rem;">Each dot is a clinical observation pulled from a PCP record. Lines connect sequential observations for the same participant. Horizontal bands mark CKD staging thresholds (G3a at 45, G3b at 30). The steep post-donation drop at year 0 is the nephron mass effect — roughly 25–30% acute reduction in measured GFR. What happens after is the story: compensatory hypertrophy, hyperfiltration, aging, diabetes, hypertension, the occasional catastrophic collapse, the rarer genuine recovery. The spaghetti is the data. The ontology is trying to survive it.</p>
+  </section>
+
 </main>
 
 <footer>
@@ -992,6 +1027,562 @@
   }, { rootMargin: '-40% 0px -55% 0px' });
 
   sections.forEach(s => obs.observe(s));
-</script>
+
+  // ─── eGFR SIMULATION ENGINE ──────────────────────────────────────────────
+
+  const NAMES = [
+    "Amara Okonkwo","Beatrice Nalwoga","Calvin Mwangi","Dorothy Asiimwe","Elijah Ssebunya",
+    "Fatuma Nakirya","George Katumba","Hannah Akello","Isaac Musoke","Josephine Birungi",
+    "Kenneth Ssali","Lydia Nakato","Marcus Oduya","Naomi Tumusiime","Oliver Byaruhanga",
+    "Patricia Nansubuga","Quincy Mugisha","Rebecca Atim","Samuel Ogwang","Theodora Namukasa",
+    "Umar Ssekandi","Violet Nakawunde","William Okello","Xenia Namusoke","Yusuf Mulondo",
+    "Zoe Achen","Abram Opio","Bridget Nakiganda","Charles Lutalo","Diana Namayanja",
+    "Emmanuel Ddamulira","Florence Nambooze","Geoffrey Ssenoga","Harriet Nalubega","Ivan Kirunda",
+    "Jacqueline Nabulime","Kevin Mwesigwa","Lillian Namugga","Michael Ssegawa","Nora Nakayiza",
+    "Oscar Kibuuka","Penelope Nalwanga","Raphael Bwambale","Sarah Nakyeyune","Timothy Ssekyewa",
+    "Ursula Nakaggwa","Victor Kato","Winifred Namwanje","Xavier Opio","Yasmin Namutebi",
+    "Aaron Wasswa","Brenda Nakirya","Conrad Okeello","Daphne Nabakka","Eugene Ssenabulya",
+    "Faith Nalugya","Gordon Katende","Hope Nampijja","Ian Lubega","Joyce Nakamatte",
+    "Keith Ssemanda","Laura Nankya","Moses Buyinza","Nancy Nabatanzi","Peter Wamala",
+    "Queen Namugenyi","Robert Ssemujju","Stella Nankinga","Thomas Ssonko","Uma Nakigozi",
+    "Vincent Ssewankambo","Wendy Nalweyiso","Yolanda Namukasa","Zachary Kisitu","Alice Namirembe",
+    "Bernard Kyeyune","Christine Nassali","David Ssebaggala","Evelyn Nakafeero","Francis Waiswa",
+    "Grace Nakato","Henry Ssengendo","Irene Nakabuye","James Mukasa","Karen Nalwoga",
+    "Leonard Sserubiri","Mary Nakaggwa","Nathan Kigozi","Olivia Nakayiza","Paul Ssemwanga",
+    "Rachel Namanda","Stephen Bbosa","Tina Namugenyi","Uthman Mutebi","Vera Nassali",
+    "Walter Ggita","Ximena Nakiganda","Yosef Ssemanda","Zelda Nakabuye","Adrian Kizza"
+  ];
+
+  const REGIMES = [
+    {type:'stable_decline', weight:28},
+    {type:'gradual_decline', weight:22},
+    {type:'hyperfiltration_recovery', weight:14},
+    {type:'early_recovery', weight:10},
+    {type:'catastrophic_collapse', weight:8},
+    {type:'accelerating_decline', weight:8},
+    {type:'flat', weight:6},
+    {type:'grokking', weight:4}
+  ];
+
+  let participants = [];
+  let rngSeed = 42;
+
+  function seededRand() {
+    rngSeed = (rngSeed * 1664525 + 1013904223) & 0xffffffff;
+    return (rngSeed >>> 0) / 4294967296;
+  }
+
+  function randNorm(mean, sd) {
+    let u = 0, v = 0;
+    while(u === 0) u = seededRand();
+    while(v === 0) v = seededRand();
+    return mean + sd * Math.sqrt(-2*Math.log(u)) * Math.cos(2*Math.PI*v);
+  }
+
+  function pickRegime() {
+    const total = REGIMES.reduce((s,r) => s+r.weight, 0);
+    let r = seededRand() * total;
+    for(const reg of REGIMES) { r -= reg.weight; if(r <= 0) return reg.type; }
+    return REGIMES[0].type;
+  }
+
+  function donationYear(seed) {
+    // transplants 1974-2022
+    return 1974 + Math.floor(seededRand() * 49);
+  }
+
+  function baselineEGFR(age, sex) {
+    // Pre-donation baseline: typically 80-110 for donors (screened healthy)
+    const base = sex==='F' ? randNorm(95,10) : randNorm(98,11);
+    const ageAdj = Math.max(0, (age-40) * 0.35);
+    return Math.max(70, base - ageAdj);
+  }
+
+  function generateObservations(p) {
+    // Number of records: highly skewed distribution
+    // Many people have 0-2, some have many
+    const nRecords = Math.random() < 0.08 ? 0
+      : Math.random() < 0.18 ? 1
+      : Math.random() < 0.32 ? Math.floor(seededRand()*2)+2
+      : Math.random() < 0.55 ? Math.floor(seededRand()*4)+3
+      : Math.random() < 0.78 ? Math.floor(seededRand()*6)+5
+      : Math.floor(seededRand()*15)+8;
+
+    if(nRecords === 0) return [];
+
+    const maxFollow = Math.min(2022 - p.donationYear, 48);
+    const obs = [];
+
+    // Always get one near-baseline (pre or just-post donation)
+    const regime = p.regime;
+    const bl = p.baseline;
+
+    // Generate time points: clustered in early years for some, spread out for others
+    const times = [];
+
+    // Immediate post-donation (within 1 year) — often captured
+    if(seededRand() > 0.25) times.push(seededRand() * 0.8 + 0.1);
+
+    // Year 1-5: regular PCP follow-up
+    const earlyN = Math.floor(seededRand() * Math.min(nRecords-1, 4));
+    for(let i=0;i<earlyN;i++) times.push(1 + seededRand()*4);
+
+    // Year 5+: sporadic
+    const lateN = nRecords - 1 - earlyN;
+    for(let i=0;i<lateN;i++) {
+      const t = 5 + seededRand() * Math.max(1, maxFollow-5);
+      if(t < maxFollow) times.push(t);
+    }
+
+    times.sort((a,b)=>a-b);
+
+    for(const t of times) {
+      const egfr = eGFRatTime(bl, t, maxFollow, regime, p);
+      if(egfr > 5) obs.push({t, egfr: Math.max(6, egfr)});
+    }
+
+    return obs;
+  }
+
+  function eGFRatTime(baseline, t, maxFollow, regime, p) {
+    // Acute post-donation drop: ~25-30%
+    const acuteDrop = baseline * (0.22 + seededRand()*0.10);
+    const postDonation = baseline - acuteDrop;
+
+    // Regime-specific trajectory
+    let traj;
+    const noise = randNorm(0, 3.5 + t*0.4); // heteroskedastic
+
+    switch(regime) {
+      case 'stable_decline':
+        // ~0.5-1.0 ml/min/yr after initial drop, common
+        traj = postDonation - (0.5 + seededRand()*0.5) * t;
+        break;
+      case 'gradual_decline':
+        traj = postDonation - (1.0 + seededRand()*0.8) * t;
+        break;
+      case 'hyperfiltration_recovery':
+        // Compensatory hypertrophy brings eGFR partway back
+        const recovery = acuteDrop * (0.4 + seededRand()*0.3);
+        const recoveryTime = 2 + seededRand()*3;
+        const recovered = postDonation + recovery * Math.min(1, t/recoveryTime);
+        traj = recovered - (0.4 + seededRand()*0.4) * t;
+        break;
+      case 'early_recovery':
+        const er = acuteDrop * (0.5 + seededRand()*0.35);
+        traj = postDonation + er * Math.min(1, t/1.5) - (0.3 + seededRand()*0.3)*t;
+        break;
+      case 'catastrophic_collapse':
+        const collapseAt = 3 + seededRand() * (maxFollow*0.6);
+        if(t < collapseAt) {
+          traj = postDonation - (0.6 + seededRand()*0.4) * t;
+        } else {
+          const atCollapse = postDonation - (0.6)*collapseAt;
+          traj = atCollapse - (8 + seededRand()*6) * (t - collapseAt);
+        }
+        break;
+      case 'accelerating_decline':
+        traj = postDonation - (0.3*t + 0.08*t*t);
+        break;
+      case 'flat':
+        traj = postDonation - (0.15 + seededRand()*0.15) * t;
+        break;
+      case 'grokking':
+        // Apparent stabilization then sudden insight/worsening
+        const grokAt = 5 + seededRand() * 10;
+        if(t < grokAt) {
+          traj = postDonation - (0.3 + seededRand()*0.2)*t;
+        } else {
+          traj = postDonation - (0.3)*grokAt - (2.5 + seededRand()*2)*(t-grokAt);
+        }
+        break;
+      default:
+        traj = postDonation - 0.7*t;
+    }
+
+    return traj + noise;
+  }
+
+  function simulate(seed) {
+    rngSeed = seed;
+    participants = [];
+
+    for(let i=0; i<100; i++) {
+      const sex = seededRand() > 0.45 ? 'F' : 'M';
+      const age = Math.floor(randNorm(42, 11));
+      const donYear = 1974 + Math.floor(seededRand() * 49);
+      const regime = pickRegime();
+      const bl = baselineEGFR(Math.max(21, Math.min(age,72)), sex);
+
+      const p = {
+        id: i,
+        name: NAMES[i] || `Donor ${i+1}`,
+        sex, age, donYear, regime, baseline: bl,
+        race: ['Black','White','Other'][Math.floor(seededRand()*3)],
+        obs: []
+      };
+      p.obs = generateObservations(p);
+      participants.push(p);
+    }
+  }
+
+  // ─── SVG RENDERER ────────────────────────────────────────────────────────
+
+  const PAD = {top:40, right:30, bottom:55, left:58};
+  const W = 900, H = 480;
+  const PLOT_W = W - PAD.left - PAD.right;
+  const PLOT_H = H - PAD.top - PAD.bottom;
+
+  const REGIME_COLORS = {
+    stable_decline:        'rgba(200,146,42,0.28)',
+    gradual_decline:       'rgba(200,146,42,0.18)',
+    hyperfiltration_recovery: 'rgba(60,180,120,0.35)',
+    early_recovery:        'rgba(60,180,120,0.28)',
+    catastrophic_collapse: 'rgba(180,60,80,0.55)',
+    accelerating_decline:  'rgba(200,100,42,0.35)',
+    flat:                  'rgba(140,140,200,0.25)',
+    grokking:              'rgba(124,92,191,0.45)'
+  };
+
+  function xScale(t) { return PAD.left + (t / 48) * PLOT_W; }
+  function yScale(v) { return PAD.top + (1 - Math.min(1,Math.max(0,(v-5)/125))) * PLOT_H; }
+
+  function svgEl(tag, attrs, children) {
+    const ns = 'http://www.w3.org/2000/svg';
+    const el = document.createElementNS(ns, tag);
+    for(const [k,v] of Object.entries(attrs)) el.setAttribute(k, v);
+    if(children) el.innerHTML = children;
+    return el;
+  }
+
+  function renderEGFR() {
+    const svg = document.getElementById('egfr-svg');
+    svg.innerHTML = '';
+
+    const showInd   = document.getElementById('show-individuals').checked;
+    const showMed   = document.getElementById('show-median').checked;
+    const showCol   = document.getElementById('show-collapse').checked;
+    const showRec   = document.getElementById('show-recovery').checked;
+
+    // Defs for clip
+    const defs = svgEl('defs', {});
+    const clip = svgEl('clipPath', {id:'plot-clip'});
+    clip.appendChild(svgEl('rect',{x:PAD.left,y:PAD.top,width:PLOT_W,height:PLOT_H}));
+    defs.appendChild(clip);
+    svg.appendChild(defs);
+
+    // Background
+    svg.appendChild(svgEl('rect',{x:0,y:0,width:W,height:H,fill:'none'}));
+
+    // CKD bands
+    const bands = [
+      {lo:45,hi:60,label:'G3a',color:'rgba(200,146,42,0.06)'},
+      {lo:30,hi:45,label:'G3b',color:'rgba(180,100,60,0.09)'},
+      {lo:5, hi:30,label:'G4–5',color:'rgba(180,60,60,0.12)'},
+    ];
+    for(const b of bands) {
+      const y1 = yScale(b.hi), y2 = yScale(b.lo);
+      svg.appendChild(svgEl('rect',{
+        x:PAD.left, y:Math.min(y1,y2),
+        width:PLOT_W, height:Math.abs(y2-y1),
+        fill:b.color, 'clip-path':'url(#plot-clip)'
+      }));
+      const ly = Math.min(y1,y2) + Math.abs(y2-y1)/2;
+      if(ly > PAD.top && ly < PAD.top+PLOT_H) {
+        const t = svgEl('text',{
+          x:PAD.left+4, y:ly+4,
+          'font-family':'DM Mono,monospace','font-size':'8',
+          fill:'rgba(200,146,42,0.4)','font-style':'italic'
+        }, b.label);
+        svg.appendChild(t);
+      }
+    }
+
+    // CKD threshold lines
+    for(const v of [90,60,45,30,15]) {
+      const y = yScale(v);
+      const line = svgEl('line',{
+        x1:PAD.left, y1:y, x2:PAD.left+PLOT_W, y2:y,
+        stroke: v===60||v===45 ? 'rgba(200,146,42,0.25)' : 'rgba(180,60,60,0.2)',
+        'stroke-width': v===60||v===45 ? '1' : '0.75',
+        'stroke-dasharray':'4 3'
+      });
+      svg.appendChild(line);
+      svg.appendChild(svgEl('text',{
+        x:PAD.left-4,y:y+3,
+        'text-anchor':'end','font-family':'DM Mono,monospace','font-size':'8',
+        fill:'rgba(200,146,42,0.5)'
+      }, v));
+    }
+
+    // Y-axis gridlines every 20
+    for(let v=20;v<=120;v+=20) {
+      svg.appendChild(svgEl('line',{
+        x1:PAD.left,y1:yScale(v),x2:PAD.left+PLOT_W,y2:yScale(v),
+        stroke:'rgba(255,255,255,0.04)','stroke-width':'1'
+      }));
+    }
+
+    // X-axis gridlines every 5 years
+    for(let yr=0;yr<=48;yr+=5) {
+      const x = xScale(yr);
+      svg.appendChild(svgEl('line',{
+        x1:x,y1:PAD.top,x2:x,y2:PAD.top+PLOT_H,
+        stroke:'rgba(255,255,255,0.04)','stroke-width':'1'
+      }));
+    }
+
+    // Individual traces
+    const collapseMarkers = [];
+
+    for(const p of participants) {
+      if(p.obs.length < 2) continue;
+
+      const isCollapse = p.regime === 'catastrophic_collapse';
+      const isRecovery = p.regime === 'hyperfiltration_recovery' || p.regime === 'early_recovery';
+
+      if(isCollapse && !showCol) continue;
+      if(isRecovery && !showRec) continue;
+      if(!showInd && !isCollapse && !isRecovery) continue;
+
+      const color = REGIME_COLORS[p.regime] || 'rgba(200,146,42,0.2)';
+      const strokeW = isCollapse ? '1.8' : isRecovery ? '1.5' : '0.9';
+
+      let d = '';
+      for(let i=0;i<p.obs.length;i++) {
+        const {t,egfr} = p.obs[i];
+        const x = xScale(t), y = yScale(egfr);
+        d += i===0 ? `M${x},${y}` : ` L${x},${y}`;
+      }
+
+      const path = svgEl('path',{
+        d, fill:'none', stroke:color,
+        'stroke-width':strokeW,
+        'stroke-linejoin':'round',
+        'stroke-linecap':'round',
+        'clip-path':'url(#plot-clip)',
+        'data-id': p.id,
+        'data-name': p.name,
+        'data-regime': p.regime
+      });
+      svg.appendChild(path);
+
+      // Dots
+      for(const {t,egfr} of p.obs) {
+        const cx = xScale(t), cy = yScale(egfr);
+        const dotColor = isCollapse ? 'rgba(220,80,80,0.7)'
+          : isRecovery ? 'rgba(60,180,120,0.7)'
+          : p.regime === 'grokking' ? 'rgba(124,92,191,0.6)'
+          : 'rgba(200,146,42,0.45)';
+        const dot = svgEl('circle',{
+          cx,cy,r:'2.2',fill:dotColor,
+          'clip-path':'url(#plot-clip)',
+          'data-id':p.id,'data-name':p.name,
+          'data-egfr':egfr.toFixed(1),'data-t':t.toFixed(1),
+          'data-regime':p.regime,
+          style:'cursor:crosshair'
+        });
+        svg.appendChild(dot);
+      }
+
+      // Track collapse event for marker
+      if(isCollapse && p.obs.length > 2) {
+        // find steepest drop
+        let maxDrop = 0, colT = 0;
+        for(let i=1;i<p.obs.length;i++) {
+          const drop = p.obs[i-1].egfr - p.obs[i].egfr;
+          if(drop > maxDrop) { maxDrop=drop; colT=p.obs[i].t; }
+        }
+        if(maxDrop>15) collapseMarkers.push({t:colT, y:yScale(p.obs.find(o=>o.t>=colT)?.egfr||20)});
+      }
+    }
+
+    // Collapse markers
+    for(const m of collapseMarkers) {
+      svg.appendChild(svgEl('line',{
+        x1:xScale(m.t),y1:PAD.top,x2:xScale(m.t),y2:PAD.top+PLOT_H,
+        stroke:'rgba(200,60,60,0.2)','stroke-width':'1','stroke-dasharray':'2 4'
+      }));
+    }
+
+    // Median ± IQR band
+    if(showMed) {
+      const timePoints = [];
+      for(let t=0;t<=48;t+=0.5) timePoints.push(t);
+
+      const medVals = [], q1Vals = [], q3Vals = [];
+      for(const t of timePoints) {
+        const vals = [];
+        for(const p of participants) {
+          // interpolate
+          if(p.obs.length===0) continue;
+          const before = p.obs.filter(o=>o.t<=t);
+          const after  = p.obs.filter(o=>o.t>=t);
+          if(before.length>0 && after.length>0) {
+            const b = before[before.length-1];
+            const a = after[0];
+            if(a.t === b.t) { vals.push(b.egfr); continue; }
+            const frac = (t-b.t)/(a.t-b.t);
+            vals.push(b.egfr + frac*(a.egfr-b.egfr));
+          } else if(before.length>0 && t-before[before.length-1].t < 1.5) {
+            vals.push(before[before.length-1].egfr);
+          }
+        }
+        vals.sort((a,b)=>a-b);
+        const n=vals.length;
+        if(n>4) {
+          medVals.push({t, v:vals[Math.floor(n/2)]});
+          q1Vals.push({t,  v:vals[Math.floor(n*0.25)]});
+          q3Vals.push({t,  v:vals[Math.floor(n*0.75)]});
+        }
+      }
+
+      if(medVals.length>3) {
+        // IQR band
+        let bandD = '';
+        for(let i=0;i<q3Vals.length;i++) bandD += (i===0?'M':'L')+`${xScale(q3Vals[i].t)},${yScale(q3Vals[i].v)}`;
+        for(let i=q1Vals.length-1;i>=0;i--) bandD += `L${xScale(q1Vals[i].t)},${yScale(q1Vals[i].v)}`;
+        bandD += 'Z';
+        svg.appendChild(svgEl('path',{
+          d:bandD, fill:'rgba(200,146,42,0.07)', stroke:'none',
+          'clip-path':'url(#plot-clip)'
+        }));
+
+        // Median line
+        let medD = '';
+        for(let i=0;i<medVals.length;i++) medD += (i===0?'M':'L')+`${xScale(medVals[i].t)},${yScale(medVals[i].v)}`;
+        svg.appendChild(svgEl('path',{
+          d:medD, fill:'none', stroke:'rgba(200,146,42,0.85)',
+          'stroke-width':'2', 'stroke-linejoin':'round',
+          'clip-path':'url(#plot-clip)'
+        }));
+      }
+    }
+
+    // Axes
+    svg.appendChild(svgEl('line',{x1:PAD.left,y1:PAD.top,x2:PAD.left,y2:PAD.top+PLOT_H,stroke:'rgba(255,255,255,0.2)','stroke-width':'1'}));
+    svg.appendChild(svgEl('line',{x1:PAD.left,y1:PAD.top+PLOT_H,x2:PAD.left+PLOT_W,y2:PAD.top+PLOT_H,stroke:'rgba(255,255,255,0.2)','stroke-width':'1'}));
+
+    // X axis labels
+    for(let yr=0;yr<=48;yr+=4) {
+      const x=xScale(yr);
+      svg.appendChild(svgEl('text',{
+        x, y:PAD.top+PLOT_H+16,
+        'text-anchor':'middle','font-family':'DM Mono,monospace','font-size':'9',
+        fill:'rgba(200,180,140,0.5)'
+      }, yr));
+    }
+
+    // Axis titles
+    svg.appendChild(svgEl('text',{
+      x:W/2, y:H-6,
+      'text-anchor':'middle','font-family':'DM Sans,sans-serif','font-size':'10',
+      fill:'rgba(200,180,140,0.55)'
+    }, 'Years since donation'));
+    svg.appendChild(svgEl('text',{
+      x:11, y:PAD.top+PLOT_H/2,
+      transform:`rotate(-90,11,${PAD.top+PLOT_H/2})`,
+      'text-anchor':'middle','font-family':'DM Sans,sans-serif','font-size':'10',
+      fill:'rgba(200,180,140,0.55)'
+    }, 'eGFR (ml/min/1.73m²)'));
+
+    // Annotation: acute drop
+    const annoX = xScale(0.5), annoY = yScale(72);
+    svg.appendChild(svgEl('text',{
+      x:annoX+6, y:annoY-6,
+      'font-family':'DM Mono,monospace','font-size':'7.5',
+      fill:'rgba(200,146,42,0.6)', 'font-style':'italic'
+    }, 'acute drop'));
+
+    // Title
+    svg.appendChild(svgEl('text',{
+      x:PAD.left+6, y:PAD.top-10,
+      'font-family':'DM Serif Display,serif','font-size':'12',
+      fill:'rgba(200,180,140,0.7)'
+    }, 'Post-donation eGFR · Johns Hopkins 1974–2022 · n=100 (simulated)'));
+
+    // Tooltip hover
+    svg.querySelectorAll('circle').forEach(dot => {
+      dot.addEventListener('mouseover', (e) => {
+        const tip = document.getElementById('egfr-tooltip');
+        const rect = svg.getBoundingClientRect();
+        const svgRect = svg.parentElement.getBoundingClientRect();
+        tip.style.display='block';
+        const regime = dot.dataset.regime.replace(/_/g,' ');
+        tip.innerHTML = `<span style="color:var(--amber)">${dot.dataset.name}</span><br>t = ${parseFloat(dot.dataset.t).toFixed(1)} yr &nbsp; eGFR = ${parseFloat(dot.dataset.egfr).toFixed(0)}<br><span style="color:var(--text-dimmer)">${regime}</span>`;
+        const x = e.clientX - svgRect.left + 10;
+        const y = e.clientY - svgRect.top + 10;
+        tip.style.left = x+'px';
+        tip.style.top = y+'px';
+      });
+      dot.addEventListener('mouseout', () => {
+        document.getElementById('egfr-tooltip').style.display='none';
+      });
+    });
+
+    // Update summary stats
+    updateSummary();
+  }
+
+  function updateSummary() {
+    const div = document.getElementById('egfr-summary');
+    const withObs = participants.filter(p=>p.obs.length>0).length;
+    const noObs   = participants.filter(p=>p.obs.length===0).length;
+    const medN    = [...participants].sort((a,b)=>a.obs.length-b.obs.length)[50].obs.length;
+    const maxN    = Math.max(...participants.map(p=>p.obs.length));
+    const totalObs= participants.reduce((s,p)=>s+p.obs.length,0);
+    const collapses = participants.filter(p=>p.regime==='catastrophic_collapse').length;
+    const recovery  = participants.filter(p=>p.regime==='hyperfiltration_recovery'||p.regime==='early_recovery').length;
+
+    const stats = [
+      {label:'N with ≥1 eGFR', value: withObs},
+      {label:'N with 0 records', value: noObs},
+      {label:'Median obs/person', value: medN},
+      {label:'Max obs (one person)', value: maxN},
+      {label:'Total observations', value: totalObs},
+      {label:'Collapse events', value: collapses},
+      {label:'Recovery regimes', value: recovery},
+    ];
+
+    div.innerHTML = stats.map(s=>`
+      <div style="background:var(--bg2);border:1px solid var(--border-dim);border-radius:4px;padding:0.6rem 0.9rem;">
+        <div style="font-family:'DM Mono',monospace;font-size:1rem;color:var(--amber);font-weight:600;">${s.value}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--text-dimmer);margin-top:0.15rem;text-transform:uppercase;letter-spacing:0.08em;">${s.label}</div>
+      </div>
+    `).join('');
+  }
+
+  function resimulate() {
+    simulate(Math.floor(Math.random() * 100000));
+    renderEGFR();
+  }
+
+  // Controls
+  ['show-individuals','show-median','show-collapse','show-recovery'].forEach(id => {
+    document.getElementById(id).addEventListener('change', renderEGFR);
+  });
+
+  // Legend
+  function renderLegend() {
+    const leg = document.getElementById('egfr-legend');
+    const items = [
+      {color:'rgba(200,146,42,0.85)',label:'Median'},
+      {color:'rgba(200,146,42,0.25)',label:'IQR band'},
+      {color:'rgba(60,180,120,0.6)',label:'Recovery'},
+      {color:'rgba(180,60,80,0.7)',label:'Collapse'},
+      {color:'rgba(124,92,191,0.6)',label:'Grokking'},
+    ];
+    leg.innerHTML = items.map(i=>`
+      <span style="display:flex;align-items:center;gap:4px;">
+        <span style="display:inline-block;width:14px;height:3px;background:${i.color};border-radius:1px;"></span>
+        ${i.label}
+      </span>`).join('');
+  }
+
+  // Init
+  simulate(42);
+  renderLegend();
+  renderEGFR();
+ </script>
 </body>
 </html>
