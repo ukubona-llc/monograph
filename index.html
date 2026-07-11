@@ -1086,11 +1086,6 @@
     return REGIMES[0].type;
   }
 
-  function donationYear(seed) {
-    // transplants 1974-2022
-    return 1974 + Math.floor(seededRand() * 49);
-  }
-
   function baselineEGFR(age, sex) {
     // Pre-donation baseline: typically 80-110 for donors (screened healthy)
     const base = sex==='F' ? randNorm(95,10) : randNorm(98,11);
@@ -1100,7 +1095,6 @@
 
   function generateObservations(p) {
     // Number of records: highly skewed distribution
-    // Many people have 0-2, some have many
     const nRecords = Math.random() < 0.08 ? 0
       : Math.random() < 0.18 ? 1
       : Math.random() < 0.32 ? Math.floor(seededRand()*2)+2
@@ -1110,94 +1104,99 @@
 
     if(nRecords === 0) return [];
 
-    const maxFollow = Math.min(2022 - p.donationYear, 48);
+    // BUG FIX: donYear instead of donationYear
+    const maxFollow = Math.min(2022 - p.donYear, 48);
     const obs = [];
-
-    // Always get one near-baseline (pre or just-post donation)
-    const regime = p.regime;
-    const bl = p.baseline;
-
-    // Generate time points: clustered in early years for some, spread out for others
     const times = [];
 
-    // Immediate post-donation (within 1 year) — often captured
-    if(seededRand() > 0.25) times.push(seededRand() * 0.8 + 0.1);
-
-    // Year 1-5: regular PCP follow-up
-    const earlyN = Math.floor(seededRand() * Math.min(nRecords-1, 4));
-    for(let i=0;i<earlyN;i++) times.push(1 + seededRand()*4);
-
-    // Year 5+: sporadic
-    const lateN = nRecords - 1 - earlyN;
-    for(let i=0;i<lateN;i++) {
-      const t = 5 + seededRand() * Math.max(1, maxFollow-5);
-      if(t < maxFollow) times.push(t);
+    // Immediate post-donation (within 1 year)
+    let hasImmediate = false;
+    if(seededRand() > 0.25) {
+      times.push(seededRand() * 0.8 + 0.1);
+      hasImmediate = true;
     }
 
-    times.sort((a,b)=>a-b);
+    // BUG FIX: Prevent earlyN from consuming all slots if we want a spread
+    const slotsRemaining = nRecords - (hasImmediate ? 1 : 0);
+    const earlyN = Math.floor(seededRand() * Math.min(slotsRemaining, 4));
+    
+    for(let i=0; i<earlyN; i++) {
+      times.push(1 + seededRand()*4);
+    }
+
+    // BUG FIX: Safe lateN calculation, bounded random draws
+    const lateN = Math.max(0, slotsRemaining - earlyN);
+    for(let i=0; i<lateN; i++) {
+      if(maxFollow > 5) {
+        const t = 5 + seededRand() * (maxFollow - 5);
+        times.push(t);
+      }
+    }
+
+    times.sort((a,b) => a - b);
 
     for(const t of times) {
-      const egfr = eGFRatTime(bl, t, maxFollow, regime, p);
+      // Pass maxFollow and p directly 
+      const egfr = eGFRatTime(t, maxFollow, p);
       if(egfr > 5) obs.push({t, egfr: Math.max(6, egfr)});
     }
 
     return obs;
   }
 
-  function eGFRatTime(baseline, t, maxFollow, regime, p) {
-    // Acute post-donation drop: ~25-30%
-    const acuteDrop = baseline * (0.22 + seededRand()*0.10);
+  function eGFRatTime(t, maxFollow, p) {
+    // Read the baked-in parameters
+    const baseline = p.baseline;
+    const acuteDrop = p.params.acuteDrop;
     const postDonation = baseline - acuteDrop;
 
-    // Regime-specific trajectory
     let traj;
-    const noise = randNorm(0, 3.5 + t*0.4); // heteroskedastic
+    // Noise remains dynamic per observation to simulate assay/visit variance
+    const noise = randNorm(0, 3.5 + t * 0.4); 
 
-    switch(regime) {
+    switch(p.regime) {
       case 'stable_decline':
-        // ~0.5-1.0 ml/min/yr after initial drop, common
-        traj = postDonation - (0.5 + seededRand()*0.5) * t;
+        traj = postDonation - (0.5 + p.params.slope1 * 0.5) * t;
         break;
       case 'gradual_decline':
-        traj = postDonation - (1.0 + seededRand()*0.8) * t;
+        traj = postDonation - (1.0 + p.params.slope1 * 0.8) * t;
         break;
       case 'hyperfiltration_recovery':
-        // Compensatory hypertrophy brings eGFR partway back
-        const recovery = acuteDrop * (0.4 + seededRand()*0.3);
-        const recoveryTime = 2 + seededRand()*3;
+        const recovery = acuteDrop * (0.4 + p.params.slope1 * 0.3);
+        const recoveryTime = 2 + p.params.slope2 * 3;
         const recovered = postDonation + recovery * Math.min(1, t/recoveryTime);
-        traj = recovered - (0.4 + seededRand()*0.4) * t;
+        traj = recovered - (0.4 + p.params.eventTime * 0.4) * t;
         break;
       case 'early_recovery':
-        const er = acuteDrop * (0.5 + seededRand()*0.35);
-        traj = postDonation + er * Math.min(1, t/1.5) - (0.3 + seededRand()*0.3)*t;
+        const er = acuteDrop * (0.5 + p.params.slope1 * 0.35);
+        traj = postDonation + er * Math.min(1, t/1.5) - (0.3 + p.params.slope2 * 0.3) * t;
         break;
       case 'catastrophic_collapse':
-        const collapseAt = 3 + seededRand() * (maxFollow*0.6);
+        const collapseAt = 3 + p.params.eventTime * (maxFollow * 0.6);
         if(t < collapseAt) {
-          traj = postDonation - (0.6 + seededRand()*0.4) * t;
+          traj = postDonation - (0.6 + p.params.slope1 * 0.4) * t;
         } else {
-          const atCollapse = postDonation - (0.6)*collapseAt;
-          traj = atCollapse - (8 + seededRand()*6) * (t - collapseAt);
+          const atCollapse = postDonation - (0.6 + p.params.slope1 * 0.4) * collapseAt;
+          traj = atCollapse - (8 + p.params.slope2 * 6) * (t - collapseAt);
         }
         break;
       case 'accelerating_decline':
-        traj = postDonation - (0.3*t + 0.08*t*t);
+        traj = postDonation - (0.3 * t + 0.08 * t * t);
         break;
       case 'flat':
-        traj = postDonation - (0.15 + seededRand()*0.15) * t;
+        traj = postDonation - (0.15 + p.params.slope1 * 0.15) * t;
         break;
       case 'grokking':
-        // Apparent stabilization then sudden insight/worsening
-        const grokAt = 5 + seededRand() * 10;
+        const grokAt = 5 + p.params.eventTime * 10;
         if(t < grokAt) {
-          traj = postDonation - (0.3 + seededRand()*0.2)*t;
+          traj = postDonation - (0.3 + p.params.slope1 * 0.2) * t;
         } else {
-          traj = postDonation - (0.3)*grokAt - (2.5 + seededRand()*2)*(t-grokAt);
+          const atGrok = postDonation - (0.3 + p.params.slope1 * 0.2) * grokAt;
+          traj = atGrok - (2.5 + p.params.slope2 * 2) * (t - grokAt);
         }
         break;
       default:
-        traj = postDonation - 0.7*t;
+        traj = postDonation - 0.7 * t;
     }
 
     return traj + noise;
@@ -1214,13 +1213,24 @@
       const regime = pickRegime();
       const bl = baselineEGFR(Math.max(21, Math.min(age,72)), sex);
 
+      // BUG FIX: Bake the randomization parameters into the object so 
+      // the trace doesn't wildly re-roll its slope on every new observation.
+      const params = {
+        acuteDrop: bl * (0.22 + seededRand() * 0.10),
+        slope1: seededRand(),
+        slope2: seededRand(),
+        eventTime: seededRand()
+      };
+
       const p = {
         id: i,
         name: NAMES[i] || `Donor ${i+1}`,
         sex, age, donYear, regime, baseline: bl,
+        params,
         race: ['Black','White','Other'][Math.floor(seededRand()*3)],
         obs: []
       };
+      
       p.obs = generateObservations(p);
       participants.push(p);
     }
